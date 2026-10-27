@@ -946,6 +946,65 @@ if (ALLOW_WRITE) {
     },
   );
 
+  // -- Smart-home device rename (GraphQL setEndpointFriendlyName) ----------
+  server.registerTool(
+    "alexa_rename_smarthome_device",
+    {
+      title: "Rename a smart-home device",
+      description:
+        "Sets the name Alexa uses for a smart-home device (what you say to control it). Pass the " +
+        "applianceId (from alexa_list_smarthome_devices) or the current name. The name stays in " +
+        "Alexa; the device's own app (e.g. Hue) keeps its name. Requires confirm:true.",
+      inputSchema: {
+        applianceId: z.string().optional(),
+        currentName: z.string().optional(),
+        newName: z.string().min(1),
+        confirm: z.literal(true),
+      },
+    },
+    async ({ applianceId, currentName, newName }) => {
+      try {
+        if (!applianceId && !currentName) return fail("Pass applianceId or currentName.");
+        const alexa = await getAlexa();
+        const gql = (query: string, variables?: object) =>
+          new Promise<any>((resolve, reject) => {
+            (alexa as any).httpsGet(
+              "/nexus/v1/graphql",
+              (err: any, b: any) => (err ? reject(err) : resolve(b)),
+              { method: "POST", data: JSON.stringify({ query, variables }), timeout: 30000 },
+            );
+          });
+        // The rename takes the endpoint id, not the legacy applianceId: map it.
+        const eps = await gql(
+          "query { endpoints { items { endpointId friendlyName legacyAppliance { applianceId } } } }",
+        );
+        const items: any[] = eps?.data?.endpoints?.items ?? [];
+        const matches = items.filter((e) =>
+          applianceId
+            ? e.legacyAppliance?.applianceId === applianceId
+            : String(e.friendlyName).toLowerCase() === String(currentName).toLowerCase(),
+        );
+        if (matches.length === 0) return fail(`No device ${applianceId ?? `named "${currentName}"`}`);
+        if (matches.length > 1) {
+          return fail(`"${currentName}" matches ${matches.length} devices; pass applianceId instead: ` +
+            matches.map((e) => e.legacyAppliance?.applianceId).join(", "));
+        }
+        const ep = matches[0];
+        const res = await gql(
+          "mutation($input: SetEndpointFriendlyNameInput!) { setEndpointFriendlyName(input: $input) { endpoint { endpointId friendlyName } } }",
+          { input: { endpointId: ep.endpointId, friendlyName: newName } },
+        );
+        if (res?.errors?.length) return fail(`Rename returned: ${JSON.stringify(res.errors)}`);
+        const after = res?.data?.setEndpointFriendlyName?.endpoint;
+        return ok({
+          applianceId: ep.legacyAppliance?.applianceId,
+          oldName: ep.friendlyName,
+          newName: after?.friendlyName ?? newName,
+        });
+      } catch (e: any) { return fail(hint(e)); }
+    },
+  );
+
   // -- Group update (read-modify-write; PUT is full-replace) ----------------
   server.registerTool(
     "alexa_update_group",
