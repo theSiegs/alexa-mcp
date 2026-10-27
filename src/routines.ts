@@ -91,7 +91,7 @@ async function withBackoff<T>(fn: () => Promise<T>, retries = 3, baseMs = 500): 
 /** Resolves customerId / marketplace / a usable Echo from the account. */
 export async function accountContext(
   alexa: AlexaRemote,
-  locale = "de-DE",
+  locale = process.env.ALEXA_MCP_LOCALE ?? process.env.ALEXA_MCP_ACCEPT_LANGUAGE ?? "de-DE",
   marketplaceId = process.env.ALEXA_MCP_MARKETPLACE_ID ?? "A1PA6795UKMFR9",
 ): Promise<AccountContext> {
   const res: any = await call((cb) => alexa.getDevices(cb));
