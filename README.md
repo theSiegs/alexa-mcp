@@ -151,6 +151,7 @@ requires an explicit `confirm: true` argument.
 |---|---|---|
 | `ALEXA_MCP_AMAZON_PAGE` | `amazon.de` | Login region (e.g. `amazon.com`, `amazon.co.uk`) |
 | `ALEXA_MCP_ACCEPT_LANGUAGE` | `de-DE` | Accept-Language header and locale of created/updated routines |
+| `ALEXA_MCP_LOCALE` | `ALEXA_MCP_ACCEPT_LANGUAGE` | Locale of created/updated routines, when it should differ from the Accept-Language header |
 | `ALEXA_MCP_PROXY_LANGUAGE` | `en_US` | `language=` param on the proxy login page (e.g. `de_DE`) |
 | `ALEXA_MCP_MARKETPLACE_ID` | `A1PA6795UKMFR9` (DE) | Marketplace of voice triggers (e.g. `A2Q3Y263D00KWC` for amazon.com.br) |
 | `ALEXA_MCP_TIMEZONE` | `Europe/Berlin` | Default time zone of scheduled routines |

@@ -122,8 +122,9 @@ test("routine writes declare a UTF-8 JSON body", async () => {
 });
 
 test("locale and schedule timezone default to the env configuration", async () => {
-  const keys = ["ALEXA_MCP_ACCEPT_LANGUAGE", "ALEXA_MCP_TIMEZONE"];
+  const keys = ["ALEXA_MCP_LOCALE", "ALEXA_MCP_ACCEPT_LANGUAGE", "ALEXA_MCP_TIMEZONE"];
   const saved = keys.map((k) => process.env[k]);
+  delete process.env.ALEXA_MCP_LOCALE;
   process.env.ALEXA_MCP_ACCEPT_LANGUAGE = "en-US";
   process.env.ALEXA_MCP_TIMEZONE = "America/New_York";
   try {
@@ -131,6 +132,19 @@ test("locale and schedule timezone default to the env configuration", async () =
     assert.equal(c.locale, "en-US");
     const p = JSON.parse(buildTrigger({ kind: "schedule", time: "07:00" }, c).payload);
     assert.equal(p.schedule.timeZoneId, "America/New_York");
+  } finally {
+    keys.forEach((k, i) => (saved[i] === undefined ? delete process.env[k] : (process.env[k] = saved[i])));
+  }
+});
+
+test("ALEXA_MCP_LOCALE overrides ALEXA_MCP_ACCEPT_LANGUAGE for the routine locale", async () => {
+  const keys = ["ALEXA_MCP_LOCALE", "ALEXA_MCP_ACCEPT_LANGUAGE"];
+  const saved = keys.map((k) => process.env[k]);
+  process.env.ALEXA_MCP_LOCALE = "pt-BR";
+  process.env.ALEXA_MCP_ACCEPT_LANGUAGE = "en-US";
+  try {
+    const c = await accountContext(fakeAlexa({}));
+    assert.equal(c.locale, "pt-BR");
   } finally {
     keys.forEach((k, i) => (saved[i] === undefined ? delete process.env[k] : (process.env[k] = saved[i])));
   }
